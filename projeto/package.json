@@ -1,0 +1,11 @@
+{
+  "name": "psicomanager-neon",
+  "version": "1.0.0",
+  "description": "Gestão clínica com Neon e Netlify Functions",
+  "main": "index.html",
+  "dependencies": {
+    "pg": "^8.11.0"
+  },
+  "author": "",
+  "license": "ISC"
+}

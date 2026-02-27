@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PsicoManager v10 - Neon & Netlify Edition</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #334155;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --gray: #94a3b8;
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+
+        header { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px; }
+        @media(min-width: 600px) { header { flex-direction: row; justify-content: space-between; align-items: center; } }
+
+        .month-selector { display: flex; align-items: center; gap: 15px; background: white; padding: 5px 15px; border-radius: 50px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .btn-nav { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--primary); font-weight: bold; }
+        #currentMonthLabel { font-weight: 700; min-width: 150px; text-align: center; }
+
+        .header-actions { display: flex; gap: 10px; }
+        .btn-backup { background: var(--text); color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+        .btn-logout { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600;}
+
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; }
+        .tab-btn { padding: 12px 24px; background: transparent; border: none; font-weight: 600; color: #94a3b8; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: white; border-radius: 8px 8px 0 0; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s; }
+
+        .dashboard-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-left: 5px solid transparent; }
+        .card.blue { border-left-color: var(--primary); }
+        .card.green { border-left-color: var(--success); }
+        .card-val { font-size: 1.8rem; font-weight: 800; margin: 10px 0; }
+        .card-lbl { font-size: 0.8rem; color: #64748b; text-transform: uppercase; font-weight: 700; }
+
+        .main-grid { display: grid; grid-template-columns: 350px 1fr; gap: 25px; }
+        @media (max-width: 800px) { .main-grid { grid-template-columns: 1fr; } }
+        .form-box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; }
+        button.btn-primary { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
+
+        .patient-card { background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; margin-bottom: 12px; }
+        .p-dates { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 10px; }
+        .date-chip { font-size: 0.75rem; padding: 4px 8px; border-radius: 20px; border: 1px solid #e2e8f0; cursor: pointer; }
+        .date-chip.pending { background: #f1f5f9; }
+        .date-chip.done { background: #dcfce7; color: #166534; }
+        .date-chip.missed { background: #fee2e2; color: #991b1b; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 2000; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: white; padding: 30px; border-radius: 16px; width: 90%; max-width: 450px; position: relative; }
+
+        /* Login Screen */
+        #loginOverlay { background: var(--bg); z-index: 9999; flex-direction: column; }
+        .login-box { background: white; padding: 40px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; }
+
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 10000; }
+        .toast { background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-bottom: 10px; border-left: 5px solid var(--primary); }
+    </style>
+</head>
+<body>
+
+    <div id="loginOverlay" class="modal-overlay active">
+        <div class="login-box">
+            <h1 style="color: var(--primary);">Ψ PsicoManager</h1>
+            <p style="color: #64748b;">Acesse via Neon Cloud</p>
+            <form id="loginForm">
+                <input type="email" id="authEmail" required placeholder="seu@email.com">
+                <input type="password" id="authPassword" required placeholder="Sua senha">
+                <button type="submit" class="btn-primary">Entrar / Sincronizar</button>
+            </form>
+            <p style="font-size: 0.75rem; color: #94a3b8; margin-top: 20px;">Nota: Se o e-mail não existir, uma conta será criada automaticamente no primeiro acesso.</p>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <div class="container">
+        <header>
+            <div>
+                <h1 style="color: var(--primary); margin:0;">Ψ PsicoManager</h1>
+                <small>v10 • Neon Database</small>
+            </div>
+            <div class="month-selector">
+                <button class="btn-nav" onclick="changeMonth(-1)">‹</button>
+                <span id="currentMonthLabel">Janeiro 2026</span>
+                <button class="btn-nav" onclick="changeMonth(1)">›</button>
+            </div>
+            <div class="header-actions">
+                <button class="btn-backup" onclick="downloadBackup()">💾 Backup JSON</button>
+                <button class="btn-logout" onclick="location.reload()">Sair</button>
+            </div>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-target="dashboard">Dashboard</button>
+            <button class="tab-btn" data-target="calendar">Calendário</button>
+        </div>
+
+        <div id="dashboard" class="tab-content active">
+            <div class="dashboard-cards">
+                <div class="card blue">
+                    <div class="card-lbl">Projetado</div>
+                    <div class="card-val" id="dashProj">R$ 0,00</div>
+                </div>
+                <div class="card green">
+                    <div class="card-lbl">Recebido</div>
+                    <div class="card-val" id="dashReal">R$ 0,00</div>
+                </div>
+            </div>
+
+            <div class="main-grid">
+                <div class="form-box">
+                    <h3>Novo Paciente</h3>
+                    <form id="addForm">
+                        <label>Nome</label>
+                        <input type="text" id="pName" required>
+                        <div style="display:flex; gap:10px;">
+                            <select id="pDay"></select>
+                            <select id="pTime"></select>
+                        </div>
+                        <label>Valor (R$)</label>
+                        <input type="text" id="pVal" placeholder="0,00" oninput="applyCurrencyMask(this)">
+                        <button type="submit" class="btn-primary">Cadastrar</button>
+                    </form>
+                </div>
+                <div id="patientsList"></div>
+            </div>
+        </div>
+
+        <div id="calendar" class="tab-content">
+            <div id="calendarGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; background: white; padding: 15px; border-radius: 12px;"></div>
+        </div>
+    </div>
+
+    <script>
+        let db = { patients: [], sessions: {} };
+        let contextDate = new Date();
+        const MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        const DAYS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
+        // --- COMUNICAÇÃO COM NEON (VIA NETLIFY FUNCTIONS) ---
+        async function syncData(action) {
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+
+            if (!email || !password) return;
+
+            try {
+                const response = await fetch('/.netlify/functions/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action, email, password, data_json: db })
+                });
+
+                if (action === 'load') {
+                    db = await response.json();
+                    renderAll();
+                    document.getElementById('loginOverlay').classList.remove('active');
+                    showToast("Dados carregados do Neon!");
+                } else {
+                    showToast("Sincronizado com Neon!");
+                }
+            } catch (err) {
+                showToast("Erro de conexão", "error");
+            }
+        }
+
+        document.getElementById('loginForm').onsubmit = (e) => {
+            e.preventDefault();
+            syncData('load');
+        };
+
+        async function saveToCloud() {
+            renderAll();
+            await syncData('save');
+        }
+
+        // --- LÓGICA DE INTERFACE ---
+        function showToast(msg, type = 'success') {
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.innerText = msg;
+            document.getElementById('toastContainer').appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        function applyCurrencyMask(i) {
+            let v = i.value.replace(/\D/g, "");
+            i.value = (v/100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+        }
+
+        function formatBRL(v) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+        }
+
+        function populateSelects(dayId, timeId) {
+            const d = document.getElementById(dayId);
+            for(let i=1; i<=5; i++) d.innerHTML += `<option value="${i}">${DAYS[i]}</option>`;
+            const t = document.getElementById(timeId);
+            for(let h=8; h<=20; h++) t.innerHTML += `<option value="${h}:00">${h}:00</option>`;
+        }
+
+        document.getElementById('addForm').onsubmit = (e) => {
+            e.preventDefault();
+            const val = parseFloat(document.getElementById('pVal').value.replace('.','').replace(',','.'));
+            db.patients.push({
+                id: Date.now(),
+                name: document.getElementById('pName').value,
+                day: parseInt(document.getElementById('pDay').value),
+                time: document.getElementById('pTime').value,
+                val: val,
+                active: true
+            });
+            saveToCloud();
+            e.target.reset();
+        };
+
+        function renderAll() {
+            const currentKey = `${contextDate.getFullYear()}-${contextDate.getMonth()+1}`;
+            document.getElementById('currentMonthLabel').innerText = `${MONTHS[contextDate.getMonth()]} ${contextDate.getFullYear()}`;
+            
+            const list = document.getElementById('patientsList');
+            list.innerHTML = '';
+            let proj = 0, real = 0;
+
+            db.patients.forEach(p => {
+                if(!p.active) return;
+                proj += p.val;
+                
+                const div = document.createElement('div');
+                div.className = 'patient-card';
+                div.innerHTML = `<strong>${p.name}</strong> - ${DAYS[p.day]} às ${p.time} <br> ${formatBRL(p.val)}`;
+                list.appendChild(div);
+            });
+
+            document.getElementById('dashProj').innerText = formatBRL(proj);
+        }
+
+        window.changeMonth = (delta) => {
+            contextDate.setMonth(contextDate.getMonth() + delta);
+            renderAll();
+        };
+
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.onclick = () => {
+                document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
+                b.classList.add('active');
+                document.getElementById(b.dataset.target).classList.add('active');
+            };
+        });
+
+        window.onload = () => populateSelects('pDay', 'pTime');
+    </script>
+</body>
+</html>
